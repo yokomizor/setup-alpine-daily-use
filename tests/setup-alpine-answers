@@ -1,0 +1,31 @@
+KEYMAPOPTS="us us-intl"
+
+HOSTNAMEOPTS="-n alpine-test"
+
+INTERFACESOPTS="auto lo
+iface lo inet loopback
+
+auto eth0
+iface eth0 inet dhcp
+    hostname alpine-test
+"
+
+DNSOPTS="-d localhost 8.8.8.8 8.8.4.4"
+
+TIMEZONEOPTS="-z CET"
+
+PROXYOPTS="none"
+
+# Add the first mirror
+APKREPOSOPTS="-1"
+
+# Install Openssh
+SSHDOPTS="-c openssh"
+
+# Use openntpd
+NTPOPTS="-c openntpd"
+
+# Use /dev/sda as a sys disk
+# -L sets LVM
+# -e sets encryption
+DISKOPTS="-Le -m sys /dev/sda"

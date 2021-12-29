@@ -1,0 +1,247 @@
+#!/bin/sh
+
+PREFIX=
+. $PREFIX/lib/libalpine.sh
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+usage() {
+	cat <<-__EOF__
+		usage: setup-alpine-daily-use [-h] [-d] [-u username] [-r git remote repository] [-l git local path]
+
+		options:
+		 -d  Don't assign a password to daily use user
+		 -h  Show this help
+		 -l  Daily use user dotfiles git local path
+		 -r  Daily use user dotfiles git remote repository uri
+		 -u  Daily use user username
+	__EOF__
+	exit 1
+}
+
+while getopts "dhl:r:u:" opt; do
+	case $opt in
+		d) DAILYUSERNOPASS=1;;
+		h) usage;;
+		l) GITLOCALPATH="$OPTARG";;
+		r) GITREPOSITORY="$OPTARG";;
+		u) DAILYUSER="$OPTARG";;
+	esac
+done
+shift $(($OPTIND - 1))
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+enable_community_repositories() {
+	if ! grep -q '^[^#].*/community$' /etc/apk/repositories; then
+		repo=$(grep '^[^#].*/main$' /etc/apk/repositories | sed 's:/main$:/community:')
+		escaped_repo=$(echo $repo | sed -e 's:/:\\/:g' -e 's:\.:\\.:g')
+		sed -i -e "/^[^#].*\/main$/a $repo" \
+			-e "/^#${escaped_repo}$/d" \
+			/etc/apk/repositories \
+			&& echo ">> Enabling community repository"
+	fi
+}
+
+setup_custom_keymap() {
+  	local conf="$ROOT/etc/conf.d/loadkmap"
+  	local name="us-intl-ctrlswapcaps.bmap.gz"
+
+	# Custom us-intl keyboard layout with the hardcoded kdb option ctrl:swapcaps
+	cat <<-__EOF__ | base64 -d > /etc/keymap/$name
+		H4sIAAAAAAAAA+2VWVMcVRTHz7m3b/e/5wzDsO8hCMQs7DuGYMy+h+xk00BCNkJCEpJAAPkqUcsH
+		y5Tluw9+Aqvim+V3sKrn1SdvDzOyZMKgDlVovKe6H27fXn79O+fc0fGxmYmRSV416H0bqoraqYM6
+		qYu6qYd6qY/6qY2aaQ8tkE+P5YWMyROZkhl5JvfkkUzKVbpOrDw1Ik/lltyWO3JX7su4PJDdxA45
+		5F2jlzItN+W5jMpDmZAmaqFWIi+qtbeVlEf2TyvW7LBhlz0G+wzlK09D+1q0o412dUSzVlpr0nHt
+		KlIDFGFhUssjppWXp2OKPaOKWbvlzK5yy5jcCi7hUq7kKOdxFVdznAt0zaq7w6iiOtpL9dRAjaSc
+		bbSTttMO+ox2JfnPyCU5KGflvFyWC3JUTsuQzNJ8kv8TOScH5JAcliNyTI7LCfmIHEdb/jm6IsOy
+		Xy7KPjklJ2WABunjZfzhN8U4P/wmLuQi3sK1ll9n4R+krVyXhV9Umj+i1sdP6osgPDfQ6zekZim0
+		O0/XaPFa6P/1m++CKfk6+F1+k1+Cr+zqz1P+RxIr/ZOy/hV5dkViWr4MQv8J6//b4Ifgx2CR/1Vg
+		+U2eiZl8EzcFptAUmWJTYqBUFv45KjVlJtf+147l/n+Vn+T7YEjC+UX/NxIr/S/xzyeG5Zsg9P+z
+		9Z96WpKfLGamN8Eea/NnihzxUxVVUw1toVqb9eFMrT3DHgVURoYKqZgqqMTWQz7F7dqapH+mIlvs
+		rsUFRUgoSmFp2+FVUyWVk6ZS+6gY5dn5mFpI5X+46AOu5wZu5G38IW/nHbyTd9n8d7LyN3Fzzut/
+		kX/1TG1qJhN/2n8m/kXPpFbz0xK/9d/CrdzG7dzBndzF3dzDvbwe/33cvzH874zc8f+T/I+qv5f/
+		UfXf4N/I+q9COzrQiS50owe96EM/2tCMPViAqx7jBcbwBFOYwTPcwyNM4iquIw+2/+MpbuE27uAu
+		7mMcD7Ab7NyA3f/xEtO4iecYxUNMoAktaEVq/4PlN2yU0cYxxrjGMzC+Se7/Pnzft/y+8V3f8vvK
+		1z75qf0fESNZ+39cFai/lv912It6NKARn2L1tTO4hIM4i/O4jAs4itMYwizmkez/OIcDOITDOIJj
+		OI4T6bu9OVzBMPbjIvbhFE5iAIPYrP7Xjkz+0/n/tv+l/F/pfzPn/9qRyX+a/93+Sa30/+/lL0AZ
+		DApRjAqUwEc+4n/yM4rgwIUHIAJBdBl/JcqhUQqFmO0Vb/FnrP/s/X899Z/j/r8x/O+7///5Nwn/
+		H3idN5wHEQAA
+	__EOF__
+
+  	[ -f "$conf" ] && sed -i '/^KEYMAP=/d' "$conf"
+  	echo "KEYMAP=/etc/keymap/$name" >> "$conf"
+  	rc-service loadkmap restart
+}
+
+setup_syslinux() {
+	local kernel_opts=""
+	kernel_opts="$kernel_opts ipv6.disable=1"
+	kernel_opts="$kernel_opts hid_apple.swap_opt_cmd=1"
+
+	sed -i -e \
+		"s:^default_kernel_opts=\"\(.*\)\":default_kernel_opts=\"\1$kernel_opts\":" \
+		/etc/update-extlinux.conf
+
+	sed -i -e \
+		"s:^timeout=.*:timeout=1:" \
+		/etc/update-extlinux.conf
+}
+
+setup_sway() {
+	apk add \
+		sway \
+		xwayland \
+		seatd \
+		alacritty \
+		dmenu \
+		ttf-dejavu \
+		mesa-dri-gallium \
+
+	rc-update add seatd
+	rc-service seatd start
+
+	# WLR requires the XDG_RUNTIME_DIR variable to be set.
+	# https://wiki.alpinelinux.org/wiki/Wayland
+	cat <<-__EOF__ >> /etc/profile.d/xdg_runtime_dir.sh
+		if test -z "\${XDG_RUNTIME_DIR}"; then
+		  export XDG_RUNTIME_DIR=/tmp/\$(id -u)-runtime-dir
+		  if ! test -d "\${XDG_RUNTIME_DIR}"; then
+		    mkdir "\${XDG_RUNTIME_DIR}"
+		    chmod 0700 "\${XDG_RUNTIME_DIR}"
+		  fi
+		fi
+	__EOF__
+
+	# WLR_RENDERER_ALLOW_SOFTWARE: allows the gles2 renderer to use software
+	# rendering
+	cat <<-__EOF__ >> /etc/profile.d/wlr.sh
+		export WLR_RENDERER_ALLOW_SOFTWARE=1
+	__EOF__
+}
+
+setup_daily_use_apps() {
+	apk add \
+  		tmux \
+  		vim \
+		mutt \
+		newsboat \
+  		git \
+  		sudo \
+  		gnupg \
+  		gnupg-scdaemon \
+  		eudev \
+  		curl \
+  		wireguard-tools \
+  		wireguard-tools-wg \
+  		iptables \
+  		tor \
+
+	apk add \
+  		obfs4proxy \
+  		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
+
+	# Very basic rules just to get started
+	cat <<-__EOF__ >> /etc/iptables/rules-save
+		*filter
+		:INPUT DROP [0:0]
+		:FORWARD DROP [0:0]
+		:OUTPUT ACCEPT [0:0]
+		-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+		-A INPUT -i lo -j ACCEPT
+		COMMIT
+	__EOF__
+
+	rc-update add iptables
+	rc-service iptables start
+
+	setup-udev
+}
+
+setup_daily_user() {
+	echo "Setup daily user"
+
+	if [ -n "$DAILYUSER" ];then
+		dailyuser="$DAILYUSER"
+	else
+		ask "Daily use user username? (e.g 'alice')" "$dailyuser"
+		dailyuser="$resp"
+	fi
+    echo "Daily user: $dailyuser"
+    echo "Daily user no pass: $DAILYUSERNOPASS"
+
+    if [ "$DAILYUSERNOPASS" = 1 ];then
+	  	adduser -D $dailyuser
+    else
+	  	adduser $dailyuser
+    fi
+
+	adduser $dailyuser wheel
+	adduser $dailyuser input
+	adduser $dailyuser audio
+	adduser $dailyuser video
+	adduser $dailyuser gnupg
+	adduser $dailyuser seat
+
+	echo "$dailyuser ALL=(ALL) ALL" > /etc/sudoers.d/$dailyuser && chmod 0440 /etc/sudoers.d/$dailyuser
+
+	setup_dotfiles "$dailyuser"
+}
+
+setup_dotfiles() {
+	echo "Setup dotfiles"
+
+	local gitlocalpath="/home/$1/.config/dotfiles"
+	local gitrepository="https://github.com/$1/dotfiles"
+	local home="/home/$1"
+
+	while [ ! -d "$gitlocalpath/.git" ]; do
+		if [ -n "$GITLOCALPATH" ];then
+			gitlocalpath="$GITLOCALPATH"
+		else
+			ask "git local path?" "$gitlocalpath"
+			gitlocalpath="$resp"
+		fi
+
+		if [ -n "$GITREPOSITORY" ];then
+			gitrepository="$GITREPOSITORY"
+		else
+			ask "git remote repository?" "$gitrepository"
+			gitrepository="$resp"
+		fi
+
+		git clone "$gitrepository" "$gitlocalpath"
+
+		chown -R $1:$1 "$gitlocalpath"
+	done
+
+	[ -s "$gitlocalpath/.tmux.conf" ]                 && ln -sf $gitlocalpath/.tmux.conf $home
+	[ -s "$gitlocalpath/.vimrc.conf" ]                && ln -sf $gitlocalpath/.vimrc $home
+	[ -s "$gitlocalpath/.gitconfig.conf" ]            && ln -sf $gitlocalpath/.gitconfig $home
+	[ -d "$gitlocalpath/.gnupg" ]                     && install -d -m 0755 -o "$1" -g "$1" $home/.gnupg
+	[ -s "$gitlocalpath/.gnupg/gpg-agent.conf" ]      && ln -sf $gitlocalpath/.gnupg/gpg-agent.conf $home/.gnupg/gpg-agent.conf
+	[ -s "$gitlocalpath/.gnupg/gpg.conf" ]            && ln -sf $gitlocalpath/.gnupg/gpg.conf $home/.gnupg/gpg.conf
+	[ -s "$gitlocalpath/.mutt.conf" ]                 && ln -sf $gitlocalpath/.mutt $home
+	[ -d "$gitlocalpath/.config/sway" ]               && install -d -m 0755 -o "$1" -g "$1" $home/.config/sway
+	[ -s "$gitlocalpath/.config/sway/config" ]        && ln -sf $gitlocalpath/.config/sway/config $home/.config/sway/config
+	[ -d "$gitlocalpath/.config/qutebrower" ]         && install -d -m 0755 -o "$1" -g "$1" $home/.config/qutebrowser
+	[ -s "$gitlocalpath/.config/qutebrowser/config" ] && ln -sf $gitlocalpath/.config/qutebrowser/config $home/.config/qutebrower/config
+}
+
+###############################################################################
+###############################################################################
+###############################################################################
+
+enable_community_repositories
+
+apk update
+
+setup_syslinux
+setup_daily_use_apps
+setup_sway
+setup_custom_keymap
+setup_daily_user
