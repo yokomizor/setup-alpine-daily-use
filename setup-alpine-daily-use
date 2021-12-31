@@ -191,16 +191,12 @@ setup_daily_use_apps() {
 }
 
 setup_daily_user() {
-	echo "Setup daily user"
-
 	if [ -n "$DAILYUSER" ];then
 		dailyuser="$DAILYUSER"
 	else
 		ask "Daily use user username? (e.g 'alice')" "$dailyuser"
 		dailyuser="$resp"
 	fi
-    echo "Daily user: $dailyuser"
-    echo "Daily user no pass: $DAILYUSERNOPASS"
 
     if [ "$DAILYUSERNOPASS" = 1 ];then
 	  	adduser -D $dailyuser
@@ -227,8 +223,6 @@ setup_daily_user() {
 }
 
 setup_dotfiles() {
-	echo "Setup dotfiles"
-
 	local gitlocalpath="/home/$1/.config/dotfiles"
 	local gitrepository="https://github.com/$1/dotfiles"
 	local home="/home/$1"
@@ -253,17 +247,20 @@ setup_dotfiles() {
 		chown -R $1:$1 "$gitlocalpath"
 	done
 
-	[ -s "$gitlocalpath/.tmux.conf" ]                 && ln -sf $gitlocalpath/.tmux.conf $home
-	[ -s "$gitlocalpath/.vimrc.conf" ]                && ln -sf $gitlocalpath/.vimrc $home
-	[ -s "$gitlocalpath/.gitconfig.conf" ]            && ln -sf $gitlocalpath/.gitconfig $home
-	[ -d "$gitlocalpath/.gnupg" ]                     && install -d -m 0755 -o "$1" -g "$1" $home/.gnupg
-	[ -s "$gitlocalpath/.gnupg/gpg-agent.conf" ]      && ln -sf $gitlocalpath/.gnupg/gpg-agent.conf $home/.gnupg/gpg-agent.conf
-	[ -s "$gitlocalpath/.gnupg/gpg.conf" ]            && ln -sf $gitlocalpath/.gnupg/gpg.conf $home/.gnupg/gpg.conf
-	[ -s "$gitlocalpath/.mutt.conf" ]                 && ln -sf $gitlocalpath/.mutt $home
-	[ -d "$gitlocalpath/.config/sway" ]               && install -d -m 0755 -o "$1" -g "$1" $home/.config/sway
-	[ -s "$gitlocalpath/.config/sway/config" ]        && ln -sf $gitlocalpath/.config/sway/config $home/.config/sway/config
-	[ -d "$gitlocalpath/.config/qutebrower" ]         && install -d -m 0755 -o "$1" -g "$1" $home/.config/qutebrowser
-	[ -s "$gitlocalpath/.config/qutebrowser/config" ] && ln -sf $gitlocalpath/.config/qutebrowser/config $home/.config/qutebrower/config
+	[ -s "$gitlocalpath/.profile" ]                        && ln -sf $gitlocalpath/.profile $home || true
+	[ -s "$gitlocalpath/.tmux.conf" ]                      && ln -sf $gitlocalpath/.tmux.conf $home || true
+	[ -s "$gitlocalpath/.vimrc.conf" ]                     && ln -sf $gitlocalpath/.vimrc $home || true
+	[ -s "$gitlocalpath/.gitconfig.conf" ]                 && ln -sf $gitlocalpath/.gitconfig $home || true
+	[ -d "$gitlocalpath/.gnupg" ]                          && install -d -m 0700 -o "$1" -g "$1" $home/.gnupg || true
+	[ -s "$gitlocalpath/.gnupg/gpg-agent.conf" ]           && ln -sf $gitlocalpath/.gnupg/gpg-agent.conf $home/.gnupg/gpg-agent.conf || true
+	[ -s "$gitlocalpath/.gnupg/gpg.conf" ]                 && ln -sf $gitlocalpath/.gnupg/gpg.conf $home/.gnupg/gpg.conf || true
+	[ -s "$gitlocalpath/.mutt.conf" ]                      && ln -sf $gitlocalpath/.mutt $home || true
+	[ -d "$gitlocalpath/.config/sway" ]                    && install -d -m 0700 -o "$1" -g "$1" $home/.config/sway || true
+	[ -s "$gitlocalpath/.config/sway/config" ]             && ln -sf $gitlocalpath/.config/sway/config $home/.config/sway/config || true
+	[ -d "$gitlocalpath/.config/qutebrower" ]              && install -d -m 0700 -o "$1" -g "$1" $home/.config/qutebrowser || true
+	[ -s "$gitlocalpath/.config/qutebrowser/config" ]      && ln -sf $gitlocalpath/.config/qutebrowser/config $home/.config/qutebrower/config || true
+	[ -d "$gitlocalpath/.config/alacritty" ]               && install -d -m 0700 -o "$1" -g "$1" $home/.config/alacritty || true
+	[ -s "$gitlocalpath/.config/alacritty/alacritty.yml" ] && ln -sf $gitlocalpath/.config/alacritty/alacritty.yml $home/.config/alacritty/alacritty.yml || true
 }
 
 ###############################################################################
