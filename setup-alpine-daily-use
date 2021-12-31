@@ -79,10 +79,6 @@ setup_custom_keymap() {
 }
 
 setup_syslinux() {
-	local kernel_opts=""
-	kernel_opts="$kernel_opts ipv6.disable=1"
-	kernel_opts="$kernel_opts hid_apple.swap_opt_cmd=1"
-
 	sed -i -e \
 		"s:^default_kernel_opts=\"\(.*\)\":default_kernel_opts=\"\1$kernel_opts\":" \
 		/etc/update-extlinux.conf
@@ -90,6 +86,20 @@ setup_syslinux() {
 	sed -i -e \
 		"s:^timeout=.*:timeout=1:" \
 		/etc/update-extlinux.conf
+
+	update-extlinux
+}
+
+setup_grub() {
+	sed -i -e \
+		"s:^GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"\1$kernel_opts\":" \
+		/etc/update-extlinux.conf
+
+	sed -i -e \
+		"s:^GRUB_TIMEOUT=.*:GRUB_TIMEOUT=0:" \
+		/etc/default/grub
+
+	grub-mkconfig -o /boot/grub/grub.cfg
 }
 
 setup_sway() {
@@ -240,7 +250,13 @@ enable_community_repositories
 
 apk update
 
-setup_syslinux
+kernel_opts=""
+kernel_opts="$kernel_opts ipv6.disable=1"
+kernel_opts="$kernel_opts hid_apple.swap_opt_cmd=1"
+
+[ -s "/etc/update-extlinux.conf" ] && setup_syslinux
+[ -s "/etc/default/grub" ] && setup_grub
+
 setup_daily_use_apps
 setup_sway
 setup_custom_keymap
