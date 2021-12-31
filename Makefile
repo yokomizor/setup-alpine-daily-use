@@ -24,11 +24,11 @@ test-stage1:
 qemu-stage1:
 	cd tests && qemu-system-x86_64-spice \
 		-machine type=q35,accel=kvm \
-                -display gtk,gl=off \
+                -display gtk,gl=es \
 		-m 1024M \
 		-cpu host \
 		-vga none \
-                -device virtio-gpu,virgl=off \
+                -device virtio-gpu,virgl=on \
 		-object rng-random,id=rng0,filename=/dev/urandom \
 		-device virtio-rng-pci,rng=rng0 \
 		-usb \
