@@ -169,7 +169,7 @@ build {
     ]
     inline = [
       "set -e",
-      "sudo mv /tmp/setup-alpine-daily-use /sbin/setup-alpine-daily-use",
+      "sudo mv /tmp/setup-alpine-daily-use /usr/sbin/setup-alpine-daily-use",
       "sudo setup-alpine-daily-use -d -u yokomizor -r https://github.com/yokomizor/dotfiles -l /home/yokomizor/.config/dotfiles",
     ]
   }

@@ -24,8 +24,8 @@ on how to achieve that can be found at:
 ## Usage
 
 ```console
-$ wget -O /sbin/setup-alpine-daily-use https://raw.githubusercontent.com/yokomizor/setup-alpine-daily-use/master/setup-alpine-daily-use
-$ chmod +x /sbin/setup-alpine-daily-use
+$ wget -O /usr/sbin/setup-alpine-daily-use https://raw.githubusercontent.com/yokomizor/setup-alpine-daily-use/master/setup-alpine-daily-use
+$ chmod +x /usr/sbin/setup-alpine-daily-use
 $ setup-alpine-daily-use -h
 usage: setup-alpine-daily-use [-h] [-d] [-u username] [-r git remote repository] [-l git local path]
 
