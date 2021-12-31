@@ -93,7 +93,7 @@ setup_syslinux() {
 setup_grub() {
 	sed -i -e \
 		"s:^GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"\1$kernel_opts\":" \
-		/etc/update-extlinux.conf
+		/etc/default/grub
 
 	sed -i -e \
 		"s:^GRUB_TIMEOUT=.*:GRUB_TIMEOUT=0:" \
