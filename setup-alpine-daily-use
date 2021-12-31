@@ -247,7 +247,11 @@ setup_dotfiles() {
 		chown -R $1:$1 "$gitlocalpath"
 	done
 
+	install -d -m 0700 -o "$1" -g "$1" $home/.config || true
+
 	[ -s "$gitlocalpath/.profile" ]                        && ln -sf $gitlocalpath/.profile $home || true
+	[ -s "$gitlocalpath/.alias" ]                          && ln -sf $gitlocalpath/.alias $home || true
+	[ -s "$gitlocalpath/.gitconfig" ]                      && ln -sf $gitlocalpath/.gitconfig $home || true
 	[ -s "$gitlocalpath/.tmux.conf" ]                      && ln -sf $gitlocalpath/.tmux.conf $home || true
 	[ -s "$gitlocalpath/.vimrc.conf" ]                     && ln -sf $gitlocalpath/.vimrc $home || true
 	[ -s "$gitlocalpath/.gitconfig.conf" ]                 && ln -sf $gitlocalpath/.gitconfig $home || true
