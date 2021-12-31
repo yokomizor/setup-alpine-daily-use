@@ -11,7 +11,7 @@ Yet, you might learn a thing or two by just reading the source code.
 If you are just looking for a way to get started with Alpine, you should check
 the [Alpine Wiki] instead.
 
-Note that the script is supposed to be executed in a fresh system.  Instructions
+Note that the script is supposed to be executed in a fresh system. Instructions
 on how to achieve that can be found at: 
 
 * [Alpine Installation](https://wiki.alpinelinux.org/wiki/Installation).
@@ -45,8 +45,8 @@ All parameters are optional. You will be asked when needed.
 Most notably:
 
 * Graphical user interface using [sway] ([Wayland]).
-  No login manager will be installed though. Just call `sway` by hand whenever
-  you need graphics.
+  No login manager will be installed though. Sway will start on tty7 using the
+  daily use user.
 
 * Custom us-intl keyboard layout with the hardcoded kdb option ctrl:swapcaps for
   those who have realized that CAPSLOCK, besides not being very useful, sits in

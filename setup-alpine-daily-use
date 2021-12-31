@@ -104,6 +104,7 @@ setup_grub() {
 
 setup_sway() {
 	apk add \
+		dbus \
 		sway \
 		xwayland \
 		seatd \
@@ -111,8 +112,11 @@ setup_sway() {
 		dmenu \
 		ttf-dejavu \
 		mesa-dri-gallium \
+		hicolor-icon-theme \
 
+	rc-update add local
 	rc-update add seatd
+	rc-service local start
 	rc-service seatd start
 
 	# WLR requires the XDG_RUNTIME_DIR variable to be set.
@@ -132,6 +136,20 @@ setup_sway() {
 	cat <<-__EOF__ >> /etc/profile.d/wlr.sh
 		export WLR_RENDERER_ALLOW_SOFTWARE=1
 	__EOF__
+
+	# https://wiki.gentoo.org/wiki/Sway
+	cat <<-__EOF__ >> /usr/sbin/sway-launcher
+		#!/bin/sh
+		set -e
+
+		chown "\$1:\$1" "/dev/tty\${2}"
+		chmod 600 "/dev/tty\${2}"
+		
+		# I could not use openvt -s with a non root user. chvt works fine.
+		chvt \${2}
+		su -l -c "openvt -c \${2} -- dbus-run-session -- sway -Vd > /tmp/.sway_autolauncher.log 2>&1" "\$1"
+	__EOF__
+	chmod +x /usr/sbin/sway-launcher
 }
 
 setup_daily_use_apps() {
@@ -189,6 +207,12 @@ setup_daily_user() {
     else
 	  	adduser $dailyuser
     fi
+
+	cat <<-__EOF__ >> /etc/local.d/sway.start
+		#!/bin/sh
+		[ -f /usr/sbin/sway-launcher ] && sway-launcher $dailyuser 7 || true
+	__EOF__
+	chmod +x /etc/local.d/sway.start
 
 	adduser $dailyuser wheel
 	adduser $dailyuser input
