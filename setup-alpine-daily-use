@@ -9,10 +9,11 @@ PREFIX=
 
 usage() {
 	cat <<-__EOF__
-		usage: setup-alpine-daily-use [-h] [-d] [-u username] [-r git remote repository] [-l git local path]
+		usage: setup-alpine-daily-use [-h] [-d] [-u username] [-r git remote repository] [-l git local path] [-g gpg keys uri]
 
 		options:
 		 -d  Don't assign a password to daily use user
+		 -g  Daily use user gpg keys uri
 		 -h  Show this help
 		 -l  Daily use user dotfiles git local path
 		 -r  Daily use user dotfiles git remote repository uri
@@ -21,9 +22,10 @@ usage() {
 	exit 1
 }
 
-while getopts "dhl:r:u:" opt; do
+while getopts "dghl:r:u:" opt; do
 	case $opt in
 		d) DAILYUSERNOPASS=1;;
+		d) DAILYUSERGPG=$OPTARG;;
 		h) usage;;
 		l) GITLOCALPATH="$OPTARG";;
 		r) GITREPOSITORY="$OPTARG";;
@@ -191,6 +193,8 @@ setup_daily_use_apps() {
 }
 
 setup_daily_user() {
+	local dailyusergpg="https://github.com/$1.gpg"
+
 	if [ -n "$DAILYUSER" ];then
 		dailyuser="$DAILYUSER"
 	else
@@ -198,11 +202,11 @@ setup_daily_user() {
 		dailyuser="$resp"
 	fi
 
-    if [ "$DAILYUSERNOPASS" = 1 ];then
-	  	adduser -D $dailyuser
-    else
-	  	adduser $dailyuser
-    fi
+	if [ "$DAILYUSERNOPASS" = 1 ];then
+		adduser -D $dailyuser
+	else
+		adduser $dailyuser
+	fi
 
 	cat <<-__EOF__ >> /etc/local.d/sway.start
 		#!/bin/sh
@@ -220,6 +224,15 @@ setup_daily_user() {
 	echo "$dailyuser ALL=(ALL) ALL" > /etc/sudoers.d/$dailyuser && chmod 0440 /etc/sudoers.d/$dailyuser
 
 	setup_dotfiles "$dailyuser"
+
+	if [ -n "$DAILYUSERGPG" ];then
+		dailyusergpg="$DAILYUSERGPG"
+	else
+		ask "Daily use user gpg uri?" "$dailyusergpg"
+		dailyusergpg="$resp"
+	fi
+
+	su -c "wget -qO- $dailyusergpg | gpg --import" $dailyuser
 }
 
 setup_dotfiles() {
