@@ -1,4 +1,5 @@
 #!/bin/sh
+set -e
 
 PREFIX=
 . $PREFIX/lib/libalpine.sh
@@ -36,17 +37,6 @@ shift $(($OPTIND - 1))
 ###############################################################################
 ###############################################################################
 
-enable_community_repositories() {
-	if ! grep -q '^[^#].*/community$' /etc/apk/repositories; then
-		repo=$(grep '^[^#].*/main$' /etc/apk/repositories | sed 's:/main$:/community:')
-		escaped_repo=$(echo $repo | sed -e 's:/:\\/:g' -e 's:\.:\\.:g')
-		sed -i -e "/^[^#].*\/main$/a $repo" \
-			-e "/^#${escaped_repo}$/d" \
-			/etc/apk/repositories \
-			&& echo ">> Enabling community repository"
-	fi
-}
-
 setup_custom_keymap() {
   	local conf="$ROOT/etc/conf.d/loadkmap"
   	local name="us-intl-ctrlswapcaps.bmap.gz"
@@ -80,6 +70,10 @@ setup_custom_keymap() {
 
 setup_syslinux() {
 	sed -i -e \
+		"s:^modules=\(.*\):modules=\1$kernel_modules:" \
+		/etc/update-extlinux.conf
+
+	sed -i -e \
 		"s:^default_kernel_opts=\"\(.*\)\":default_kernel_opts=\"\1$kernel_opts\":" \
 		/etc/update-extlinux.conf
 
@@ -92,7 +86,7 @@ setup_syslinux() {
 
 setup_grub() {
 	sed -i -e \
-		"s:^GRUB_CMDLINE_LINUX_DEFAULT=\"\(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"\1$kernel_opts\":" \
+		"s:^GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\(\S*\) \(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\1$kernel_modules \2$kernel_opts\":" \
 		/etc/default/grub
 
 	sed -i -e \
@@ -102,22 +96,86 @@ setup_grub() {
 	grub-mkconfig -o /boot/grub/grub.cfg
 }
 
-setup_sway() {
+setup_daily_use_apps() {
+	apk add \
+		build-base \
+		doas \
+		less \
+  		curl \
+  		tmux \
+  		vim \
+		mutt \
+		newsboat \
+  		git \
+  		gnupg \
+  		gnupg-scdaemon \
+  		nodejs \
+  		pciutils \
+
+	apk add \
+  		wireguard-tools \
+  		wireguard-tools-wg \
+  		iptables \
+  		tor \
+
+	apk add \
+		packer \
+		qemu-img \
+		qemu-system-x86_64 \
+		qemu-modules \
+
 	apk add \
 		dbus \
 		sway \
 		xwayland \
 		seatd \
 		alacritty \
-		dmenu \
+		firefox \
+		pam-u2f \
+		bemenu \
 		ttf-dejavu \
 		mesa-dri-gallium \
 		hicolor-icon-theme \
+		xdg-desktop-portal \
+		xdg-desktop-portal-wlr \
 
+	apk add \
+		pipewire \
+		pipewire-pulse \
+		pipewire-alsa \
+		wireplumber \
+		rtkit \
+		bluez \
+		bluez-openrc \
+		pipewire-spa-bluez \
+
+	apk add \
+  		obfs4proxy \
+  		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
+
+	echo "permit persist :wheel" >> /etc/doas.d/doas.conf
+
+	# Very basic rules just to get started
+	cat <<-__EOF__ >> /etc/iptables/rules-save
+		*filter
+		:INPUT DROP [0:0]
+		:FORWARD DROP [0:0]
+		:OUTPUT ACCEPT [0:0]
+		-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
+		-A INPUT -i lo -j ACCEPT
+		COMMIT
+	__EOF__
+
+	rc-update add dbus
+	rc-update add iptables
 	rc-update add local
 	rc-update add seatd
+	rc-update add bluetooth
+	rc-service dbus start
+	rc-service iptables start
 	rc-service local start
 	rc-service seatd start
+	rc-service bluetooth start
 
 	# WLR requires the XDG_RUNTIME_DIR variable to be set.
 	# https://wiki.alpinelinux.org/wiki/Wayland
@@ -133,9 +191,9 @@ setup_sway() {
 
 	# WLR_RENDERER_ALLOW_SOFTWARE: allows the gles2 renderer to use software
 	# rendering
-	cat <<-__EOF__ >> /etc/profile.d/wlr.sh
-		export WLR_RENDERER_ALLOW_SOFTWARE=1
-	__EOF__
+	# cat <<-__EOF__ >> /etc/profile.d/wlr.sh
+	# 	export WLR_RENDERER_ALLOW_SOFTWARE=1
+	# __EOF__
 
 	# https://wiki.gentoo.org/wiki/Sway
 	cat <<-__EOF__ >> /usr/sbin/sway-launcher
@@ -150,44 +208,36 @@ setup_sway() {
 		su -l -c "openvt -c \${2} -- dbus-run-session -- sway -Vd > /tmp/.sway_autolauncher.log 2>&1" "\$1"
 	__EOF__
 	chmod +x /usr/sbin/sway-launcher
-}
 
-setup_daily_use_apps() {
-	apk add \
-  		tmux \
-  		vim \
-		mutt \
-		newsboat \
-  		git \
-  		sudo \
-  		gnupg \
-  		gnupg-scdaemon \
-  		eudev \
-  		curl \
-  		wireguard-tools \
-  		wireguard-tools-wg \
-  		iptables \
-  		tor \
+	### # VFIO
+	### cat <<-__EOF__ >> /etc/mkinitfs/features.d/vfio.modules
+	### 	kernel/drivers/vfio/vfio.ko.*
+	### 	kernel/drivers/vfio/vfio_virqfd.ko.*
+	### 	kernel/drivers/vfio/vfio_iommu_type1.ko.*
+	### 	kernel/drivers/vfio/pci/vfio-pci.ko.*
+	### __EOF__
 
-	apk add \
-  		obfs4proxy \
-  		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
+	### sed -i -e \
+	### 	"s:^features=\"\(.*\)\":features=\"\1 vfio\":" \
+	### 	/etc/mkinitfs/mkinitfs.conf
 
-	# Very basic rules just to get started
-	cat <<-__EOF__ >> /etc/iptables/rules-save
-		*filter
-		:INPUT DROP [0:0]
-		:FORWARD DROP [0:0]
-		:OUTPUT ACCEPT [0:0]
-		-A INPUT -m state --state ESTABLISHED,RELATED -j ACCEPT
-		-A INPUT -i lo -j ACCEPT
-		COMMIT
-	__EOF__
+	### # 10de:13c2 = GTX 970
+	### # 10de:0fbb = GTX 970 audio device
+	### cat <<-__EOF__ >> /etc/modprobe.d/vfio.conf
+	### 	options vfio-pci ids=10de:13c2
+	### 	options vfio_iommu_type1 allow_unsafe_interrupts=1
+	### 	softdep igb pre: vfio-pci
+	### __EOF__
 
-	rc-update add iptables
-	rc-service iptables start
+	### mkinitfs
+	
 
-	setup-udev
+	cp -a /usr/share/pipewire /etc
+	cp -a /usr/share/wireplumber /etc
+
+	sed -i -e \
+		"s:\[\"with-logind\"\] = true,:\[\"with-logind\"\] = false,:" \
+		/etc/wireplumber/bluetooth.lua.d/50-bluez-config.lua
 }
 
 setup_daily_user() {
@@ -198,26 +248,29 @@ setup_daily_user() {
 		dailyuser="$resp"
 	fi
 
-    if [ "$DAILYUSERNOPASS" = 1 ];then
-	  	adduser -D $dailyuser
-    else
-	  	adduser $dailyuser
-    fi
+	if [ "$DAILYUSERNOPASS" = 1 ];then
+		adduser -D $dailyuser
+		passwd -u $dailyuser
+	else
+		adduser $dailyuser
+	fi
 
-	cat <<-__EOF__ >> /etc/local.d/sway.start
-		#!/bin/sh
-		[ -f /usr/sbin/sway-launcher ] && sway-launcher $dailyuser 7 || true
-	__EOF__
-	chmod +x /etc/local.d/sway.start
+	# cat <<-__EOF__ >> /etc/local.d/sway.start
+	# 	#!/bin/sh
+	# 	[ -f /usr/sbin/sway-launcher ] && sway-launcher $dailyuser 7 || true
+	# __EOF__
+	# chmod +x /etc/local.d/sway.start
 
 	adduser $dailyuser wheel
 	adduser $dailyuser input
 	adduser $dailyuser audio
 	adduser $dailyuser video
+	adduser $dailyuser rtkit
 	adduser $dailyuser gnupg
 	adduser $dailyuser seat
-
-	echo "$dailyuser ALL=(ALL) ALL" > /etc/sudoers.d/$dailyuser && chmod 0440 /etc/sudoers.d/$dailyuser
+	adduser $dailyuser qemu
+	adduser $dailyuser kvm
+	adduser $dailyuser plugdev # pam-u2f
 
 	setup_dotfiles "$dailyuser"
 }
@@ -253,12 +306,12 @@ setup_dotfiles() {
 	[ -s "$gitlocalpath/.alias" ]                          && ln -sf $gitlocalpath/.alias $home || true
 	[ -s "$gitlocalpath/.gitconfig" ]                      && ln -sf $gitlocalpath/.gitconfig $home || true
 	[ -s "$gitlocalpath/.tmux.conf" ]                      && ln -sf $gitlocalpath/.tmux.conf $home || true
-	[ -s "$gitlocalpath/.vimrc.conf" ]                     && ln -sf $gitlocalpath/.vimrc $home || true
-	[ -s "$gitlocalpath/.gitconfig.conf" ]                 && ln -sf $gitlocalpath/.gitconfig $home || true
+	[ -s "$gitlocalpath/.vimrc" ]                          && ln -sf $gitlocalpath/.vimrc $home || true
+	[ -s "$gitlocalpath/.gitconfig" ]                      && ln -sf $gitlocalpath/.gitconfig $home || true
 	[ -d "$gitlocalpath/.gnupg" ]                          && install -d -m 0700 -o "$1" -g "$1" $home/.gnupg || true
 	[ -s "$gitlocalpath/.gnupg/gpg-agent.conf" ]           && ln -sf $gitlocalpath/.gnupg/gpg-agent.conf $home/.gnupg/gpg-agent.conf || true
 	[ -s "$gitlocalpath/.gnupg/gpg.conf" ]                 && ln -sf $gitlocalpath/.gnupg/gpg.conf $home/.gnupg/gpg.conf || true
-	[ -s "$gitlocalpath/.mutt.conf" ]                      && ln -sf $gitlocalpath/.mutt $home || true
+	[ -s "$gitlocalpath/.mutt" ]                           && ln -sf $gitlocalpath/.mutt $home || true
 	[ -d "$gitlocalpath/.config/sway" ]                    && install -d -m 0700 -o "$1" -g "$1" $home/.config/sway || true
 	[ -s "$gitlocalpath/.config/sway/config" ]             && ln -sf $gitlocalpath/.config/sway/config $home/.config/sway/config || true
 	[ -d "$gitlocalpath/.config/qutebrower" ]              && install -d -m 0700 -o "$1" -g "$1" $home/.config/qutebrowser || true
@@ -271,18 +324,24 @@ setup_dotfiles() {
 ###############################################################################
 ###############################################################################
 
-enable_community_repositories
-
 apk update
+
+kernel_modules=""
+### kernel_modules="$kernel_modules,vfio"
+### kernel_modules="$kernel_modules,vfio-pci"
+### kernel_modules="$kernel_modules,vfio_iommu_type1"
+### kernel_modules="$kernel_modules,vfio_virqfd"
 
 kernel_opts=""
 kernel_opts="$kernel_opts ipv6.disable=1"
-kernel_opts="$kernel_opts hid_apple.swap_opt_cmd=1"
+### kernel_opts="$kernel_opts hid_apple.swap_opt_cmd=1"
+### kernel_opts="$kernel_opts amd_iommu=on"
+### kernel_opts="$kernel_opts intel_iommu=on"
+### kernel_opts="$kernel_opts iommu=pt"
 
-[ -s "/etc/update-extlinux.conf" ] && setup_syslinux
-[ -s "/etc/default/grub" ] && setup_grub
-
-setup_daily_use_apps
-setup_sway
+[ -s "/etc/update-extlinux.conf" ] && setup_syslinux || true
+[ -s "/etc/default/grub" ] && setup_grub || true
+ 
 setup_custom_keymap
+setup_daily_use_apps
 setup_daily_user
