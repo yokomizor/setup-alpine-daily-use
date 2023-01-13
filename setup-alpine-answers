@@ -1,21 +1,17 @@
 KEYMAPOPTS="us us-intl"
-HOSTNAMEOPTS=alpine
+HOSTNAMEOPTS=pc
 DEVDOPTS=udev
 INTERFACESOPTS="auto lo
 iface lo inet loopback
 
 auto eth0
 iface eth0 inet dhcp
-    hostname alpine
+    hostname pc
 "
 DNSOPTS="-d localhost 8.8.8.8"
 TIMEZONEOPTS="UTC"
 PROXYOPTS=none
 APKREPOSOPTS="-c -1" # -c enables community repositories and -1 adds the first mirror
-# Create admin user
-#USEROPTS="-a -u -g audio,video,netdev juser"
-#USERSSHKEY="ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIOIiHcbg/7ytfLFHUNLRgEAubFz/13SwXBOM/05GNZe4 juser@example.com"
-#USERSSHKEY="https://example.com/juser.keys"
 USEROPTS=none
 SSHDOPTS=openssh
 NTPOPTS=openntpd
