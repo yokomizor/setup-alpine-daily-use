@@ -155,6 +155,10 @@ setup_daily_use_apps() {
 		pipewire-spa-bluez \
 
 	apk add \
+		docker \
+		docker-compose \
+
+	apk add \
   		obfs4proxy \
   		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
 
@@ -176,11 +180,13 @@ setup_daily_use_apps() {
 	rc-update add local
 	rc-update add seatd
 	rc-update add bluetooth
+	rc-update add docker boot
 	rc-service dbus start
 	rc-service iptables start
 	rc-service local start
 	rc-service seatd start
 	rc-service bluetooth start
+	rc-service docker start
 
 	# WLR requires the XDG_RUNTIME_DIR variable to be set.
 	# https://wiki.alpinelinux.org/wiki/Wayland
@@ -278,6 +284,7 @@ setup_daily_user() {
 	adduser $dailyuser qemu
 	adduser $dailyuser kvm
 	adduser $dailyuser plugdev # pam-u2f
+	adduser $dailyuser docker
 
 	setup_dotfiles "$dailyuser"
 }
