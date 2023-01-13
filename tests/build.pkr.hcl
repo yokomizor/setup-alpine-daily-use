@@ -50,8 +50,13 @@ source "qemu" "stage0" {
     # "setup-alpine -e -f http://{{ .HTTPIP }}:{{ .HTTPPort }}/setup-alpine-answers",
     "wget -q http://{{ .HTTPIP }}:{{ .HTTPPort }}/setup-alpine-answers",
     "<enter>",
+
+    # Dummy ed25519 key so packer can get in
+    "export ROOTSSHKEY=\"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEA9dM5TE9fcTVxIv+dQa4NcYG4+OmzFD978xR7TZjdF root\"",
+    "<enter>",
+
     "setup-alpine -e -f setup-alpine-answers",
-    " && poweroff",
+    "  && poweroff",
     "<enter>",
 
 
