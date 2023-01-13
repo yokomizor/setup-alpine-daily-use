@@ -25,10 +25,8 @@ test-stage1:
 qemu-stage0:
 	cd tests && qemu-system-x86_64 \
 		-machine type=q35,accel=kvm \
-                -display gtk,gl=es \
 		-m 1024M \
 		-cpu host \
-		-vga virtio \
 		-object rng-random,id=rng0,filename=/dev/urandom \
 		-device virtio-rng-pci,rng=rng0 \
 		-usb \
@@ -38,10 +36,10 @@ qemu-stage0:
 qemu-stage1:
 	cd tests && qemu-system-x86_64 \
 		-machine type=q35,accel=kvm \
-                -display gtk,gl=es \
+		-display gtk,gl=on \
 		-m 1024M \
 		-cpu host \
-		-vga virtio \
+		-device virtio-vga-gl \
 		-object rng-random,id=rng0,filename=/dev/urandom \
 		-device virtio-rng-pci,rng=rng0 \
 		-usb \
