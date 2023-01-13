@@ -113,6 +113,11 @@ setup_daily_use_apps() {
   		pciutils \
 
 	apk add \
+		build-base \
+  		nodejs \
+  		rustup \
+
+	apk add \
   		wireguard-tools \
   		wireguard-tools-wg \
   		iptables \
@@ -238,6 +243,8 @@ setup_daily_use_apps() {
 	sed -i -e \
 		"s:\[\"with-logind\"\] = true,:\[\"with-logind\"\] = false,:" \
 		/etc/wireplumber/bluetooth.lua.d/50-bluez-config.lua
+
+	rustup-init -y --default-toolchain nightly
 }
 
 setup_daily_user() {
