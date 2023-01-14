@@ -99,6 +99,7 @@ setup_grub() {
 setup_daily_use_apps() {
 	apk add \
 		doas \
+		docs \
 		less \
   		curl \
   		tmux \
