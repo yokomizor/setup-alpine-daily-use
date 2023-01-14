@@ -112,6 +112,7 @@ setup_daily_use_apps() {
   		pass \
   		pciutils \
   		usbutils \
+  		ncurses \
 
 	apk add \
 		build-base \
@@ -162,6 +163,7 @@ setup_daily_use_apps() {
 
 	apk add \
   		obfs4proxy \
+  		bluetuith \
   		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
 
 	echo "permit persist :wheel" >> /etc/doas.d/doas.conf
