@@ -108,7 +108,9 @@ setup_daily_use_apps() {
   		git \
   		gnupg \
   		gnupg-scdaemon \
+  		pass \
   		pciutils \
+  		usbutils \
 
 	apk add \
 		build-base \
@@ -131,6 +133,7 @@ setup_daily_use_apps() {
 		dbus \
 		sway \
 		xwayland \
+		wl-clipboard \
 		seatd \
 		alacritty \
 		firefox \
