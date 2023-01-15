@@ -108,11 +108,15 @@ setup_daily_use_apps() {
 		newsboat \
   		git \
   		gnupg \
-  		gnupg-scdaemon \
   		pass \
   		pciutils \
   		usbutils \
   		ncurses \
+
+	apk add \
+  		gnupg-scdaemon \
+		yubikey-manager \
+		pcsc-lite \
 
 	apk add \
 		build-base \
@@ -185,12 +189,14 @@ setup_daily_use_apps() {
 	rc-update add seatd
 	rc-update add bluetooth
 	rc-update add docker boot
+	rc-update add pcscd
 	rc-service dbus start
 	rc-service iptables start
 	rc-service local start
 	rc-service seatd start
 	rc-service bluetooth start
 	rc-service docker start
+	rc-service pcscd start
 
 	# WLR requires the XDG_RUNTIME_DIR variable to be set.
 	# https://wiki.alpinelinux.org/wiki/Wayland
