@@ -155,11 +155,12 @@ setup_daily_use_apps() {
 		pipewire \
 		pipewire-pulse \
 		pipewire-alsa \
+		pipewire-tools \
+		pipewire-spa-bluez \
 		wireplumber \
 		rtkit \
 		bluez \
 		bluez-openrc \
-		pipewire-spa-bluez \
 
 	apk add \
 		docker \
