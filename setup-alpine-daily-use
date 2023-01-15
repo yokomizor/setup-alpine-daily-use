@@ -121,6 +121,7 @@ setup_daily_use_apps() {
 	apk add \
 		build-base \
   		nodejs \
+  		npm \
   		rustup \
 
 	apk add \
@@ -261,6 +262,7 @@ setup_daily_use_apps() {
 		/etc/wireplumber/bluetooth.lua.d/50-bluez-config.lua
 
 	rustup-init -y --default-toolchain nightly
+	npm install -g yarn && yarn set version berry
 }
 
 setup_daily_user() {
