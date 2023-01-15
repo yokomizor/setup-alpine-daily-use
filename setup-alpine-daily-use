@@ -109,9 +109,11 @@ setup_daily_use_apps() {
   		git \
   		gnupg \
   		pass \
+		util-linux-misc \
   		pciutils \
   		usbutils \
   		ncurses \
+		htop \
 
 	apk add \
   		gnupg-scdaemon \
