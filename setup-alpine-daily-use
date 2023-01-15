@@ -126,7 +126,6 @@ setup_daily_use_apps() {
 
 	apk add \
   		wireguard-tools \
-  		wireguard-tools-wg \
   		iptables \
   		tor \
 
