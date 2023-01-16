@@ -171,6 +171,7 @@ setup_daily_use_apps() {
 	apk add \
   		obfs4proxy \
   		bluetuith \
+		pw-volume \
   		--repository=http://dl-cdn.alpinelinux.org/alpine/edge/testing/ \
 
 	echo "permit persist :wheel" >> /etc/doas.d/doas.conf
@@ -247,6 +248,8 @@ setup_daily_use_apps() {
 
 	### # 10de:13c2 = GTX 970
 	### # 10de:0fbb = GTX 970 audio device
+	### # 10de:1c03 = GTX 1060 6GB
+	### # 10de:10f1 = GTX 1060 6GB audio device
 	### cat <<-__EOF__ >> /etc/modprobe.d/vfio.conf
 	### 	options vfio-pci ids=10de:13c2
 	### 	options vfio_iommu_type1 allow_unsafe_interrupts=1
