@@ -3,11 +3,6 @@ variable "headless" {
   default = false
 }
 
-variable "disk_password" {
-  type = string
-  default = "packer"
-}
-
 variable "disk_size" {
   type = string
   default = "8G"
@@ -38,9 +33,9 @@ source "qemu" "stage0" {
   http_directory = "."
 
   boot_wait = "10s"
-  boot_key_interval = "20ms"
+  boot_key_interval = "10ms"
   boot_command = [
-    "root<enter><wait5>",
+    "root<enter><wait3>",
 
     # Network needs to be up so setup-alpine-answers can be fetch via http
     "ifconfig eth0 up && udhcpc -i eth0",
@@ -51,41 +46,24 @@ source "qemu" "stage0" {
     "wget -q http://{{ .HTTPIP }}:{{ .HTTPPort }}/setup-alpine-answers",
     "<enter>",
 
+    # Disable disk encryption to make `setup-alpine` fully non-interactive.
+    "sed -i -e \"s:-Le:-L:\" setup-alpine-answers",
+    "<enter>",
+
     # Dummy ed25519 key so packer can ssh in.
     # The private key is created on ./target using a provisioner shell-local script.
     "export ROOTSSHKEY=\"ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEA9dM5TE9fcTVxIv+dQa4NcYG4+OmzFD978xR7TZjdF root\"",
     "<enter>",
 
-    "setup-alpine -e -f setup-alpine-answers",
-    "  && poweroff",
+    "ERASE_DISKS=\"/dev/sda\" setup-alpine -e -f setup-alpine-answers && poweroff",
     "<enter>",
-
-
-    # Answer installation questions
-    ##########################################################################
-
-    # Erase the above disk and continue?
-    "<wait20>y<enter><wait3>",
-
-    # Enter passphrase
-    var.disk_password,
-    "<enter><wait3>",
-
-    # Verify passphrase
-    var.disk_password,
-    "<enter><wait15>",
-
-    # Enter passphrase again to unlock disk for installation 
-    var.disk_password,
-    "<enter>",
-
   ]
 }
 
 source "qemu" "stage1" {
   vm_name = "alpine-3-17-1-stage1"
   accelerator = "kvm"
-  headless = var.headless
+  headless = true
   disk_size = var.disk_size
   disk_interface = "ide"
   memory = var.memory
@@ -101,10 +79,6 @@ source "qemu" "stage1" {
   ssh_pty = true
   ssh_timeout = "20m"
   ssh_handshake_attempts = 10
-
-  boot_wait = "10s"
-  boot_key_interval = "20ms"
-  boot_command = [ var.disk_password, "<enter>" ]
 
   shutdown_command = "poweroff"
 }
