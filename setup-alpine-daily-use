@@ -37,6 +37,19 @@ shift $(($OPTIND - 1))
 ###############################################################################
 ###############################################################################
 
+enable_edge_repositories() {
+	cat <<-__EOF__ > /etc/apk/repositories
+		https://dl-cdn.alpinelinux.org/alpine/edge/main
+		https://dl-cdn.alpinelinux.org/alpine/edge/community
+		https://dl-cdn.alpinelinux.org/alpine/edge/testing
+	__EOF__
+
+	apk update
+	apk add --upgrade apk-tools
+	apk upgrade --available
+	sync
+}
+
 setup_custom_keymap() {
   	local conf="$ROOT/etc/conf.d/loadkmap"
   	local name="us-intl-ctrlswapcaps.bmap.gz"
@@ -259,12 +272,6 @@ setup_daily_user() {
 		adduser $dailyuser
 	fi
 
-	# cat <<-__EOF__ >> /etc/local.d/sway.start
-	# 	#!/bin/sh
-	# 	[ -f /usr/sbin/sway-launcher ] && sway-launcher $dailyuser 7 || true
-	# __EOF__
-	# chmod +x /etc/local.d/sway.start
-
 	adduser $dailyuser wheel
 	adduser $dailyuser input
 	adduser $dailyuser audio
@@ -329,7 +336,7 @@ setup_dotfiles() {
 ###############################################################################
 ###############################################################################
 
-apk update
+enable_edge_repositories
 
 kernel_modules=""
 ### kernel_modules="$kernel_modules,vfio"
@@ -351,3 +358,5 @@ kernel_opts="$kernel_opts hid_apple.fnmode=2"
 setup_custom_keymap
 setup_daily_use_apps
 setup_daily_user
+
+echo "Installation is complete. Please reboot."
