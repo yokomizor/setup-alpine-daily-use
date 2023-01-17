@@ -1,5 +1,5 @@
 #!/bin/sh
-set -e
+set -evx
 
 PREFIX=
 . $PREFIX/lib/libalpine.sh
@@ -69,28 +69,19 @@ setup_custom_keymap() {
 }
 
 setup_syslinux() {
-	sed -i -e \
-		"s:^modules=\(.*\):modules=\1$kernel_modules:" \
-		/etc/update-extlinux.conf
-
-	sed -i -e \
-		"s:^default_kernel_opts=\"\(.*\)\":default_kernel_opts=\"\1$kernel_opts\":" \
-		/etc/update-extlinux.conf
-
-	sed -i -e \
-		"s:^timeout=.*:timeout=1:" \
+	sed -i \
+		-e "s:^modules=\(.*\):modules=\1$kernel_modules:" \
+		-e "s:^default_kernel_opts=\"\(.*\)\":default_kernel_opts=\"\1$kernel_opts\":" \
+		-e "s:^timeout=.*:timeout=1:" \
 		/etc/update-extlinux.conf
 
 	update-extlinux
 }
 
 setup_grub() {
-	sed -i -e \
-		"s:^GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\(\S*\) \(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\1$kernel_modules \2$kernel_opts\":" \
-		/etc/default/grub
-
-	sed -i -e \
-		"s:^GRUB_TIMEOUT=.*:GRUB_TIMEOUT=0:" \
+	sed -i \
+		-e "s:^GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\(\S*\) \(.*\)\":GRUB_CMDLINE_LINUX_DEFAULT=\"modules=\1$kernel_modules \2$kernel_opts\":" \
+		-e "s:^GRUB_TIMEOUT=.*:GRUB_TIMEOUT=0:" \
 		/etc/default/grub
 
 	grub-mkconfig -o /boot/grub/grub.cfg
@@ -214,26 +205,6 @@ setup_daily_use_apps() {
 		fi
 	__EOF__
 
-	# WLR_RENDERER_ALLOW_SOFTWARE: allows the gles2 renderer to use software
-	# rendering
-	# cat <<-__EOF__ >> /etc/profile.d/wlr.sh
-	# 	export WLR_RENDERER_ALLOW_SOFTWARE=1
-	# __EOF__
-
-	# https://wiki.gentoo.org/wiki/Sway
-	cat <<-__EOF__ >> /usr/sbin/sway-launcher
-		#!/bin/sh
-		set -e
-
-		chown "\$1:\$1" "/dev/tty\${2}"
-		chmod 600 "/dev/tty\${2}"
-		
-		# I could not use openvt -s with a non root user. chvt works fine.
-		chvt \${2}
-		su -l -c "openvt -c \${2} -- dbus-run-session -- sway -Vd > /tmp/.sway_autolauncher.log 2>&1" "\$1"
-	__EOF__
-	chmod +x /usr/sbin/sway-launcher
-
 	### # VFIO
 	### cat <<-__EOF__ >> /etc/mkinitfs/features.d/vfio.modules
 	### 	kernel/drivers/vfio/vfio.ko.*
@@ -250,6 +221,10 @@ setup_daily_use_apps() {
 	### # 10de:0fbb = GTX 970 audio device
 	### # 10de:1c03 = GTX 1060 6GB
 	### # 10de:10f1 = GTX 1060 6GB audio device
+	### # 10de:1e07 = RTX 2080 ti
+	### # 10de:10f7 = RTX 2080 ti audio device
+	### # 10de:1ad6 = RTX 2080 ti usb device
+	### # 10de:1ad7 = RTX 2080 ti serial bus
 	### cat <<-__EOF__ >> /etc/modprobe.d/vfio.conf
 	### 	options vfio-pci ids=10de:13c2
 	### 	options vfio_iommu_type1 allow_unsafe_interrupts=1
@@ -258,7 +233,6 @@ setup_daily_use_apps() {
 
 	### mkinitfs
 	
-
 	cp -a /usr/share/pipewire /etc
 	cp -a /usr/share/wireplumber /etc
 
